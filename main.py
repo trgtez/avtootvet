@@ -3,6 +3,10 @@ from flask import Flask, request
 import threading
 import time
 import os  # Добавлен импорт для чтения переменной окружения
+import logging  # Для логирования
+
+# Настроим логирование
+logging.basicConfig(level=logging.INFO)  # Уровень логирования — INFO
 
 TOKEN = '8212647592:AAGjpHDjphZSLVZRVwhe1duYvgQ13mUdjtI'
 bot = telebot.TeleBot(TOKEN)
@@ -61,10 +65,16 @@ def delayed_gift_message(chat_id, user_id):
 
 @app.route(f'/{TOKEN}', methods=['POST'])
 def webhook():
-    json_str = request.get_data().decode('utf-8')
-    update = telebot.types.Update.de_json(json_str)
-    bot.process_new_updates([update])
-    return 'ok', 200
+    try:
+        json_str = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_str)
+        logging.info(f"Received update: {update}")  # Логируем входящее сообщение
+        bot.process_new_updates([update])
+        logging.info(f"Processed update successfully.")  # Логируем успешную обработку
+        return 'ok', 200
+    except Exception as e:
+        logging.error(f"Error while processing update: {e}")  # Логируем ошибки
+        return 'Error', 500
 
 @app.route('/')
 def index():
