@@ -1,21 +1,21 @@
 import telebot
-import time
+from flask import Flask, request
 import threading
+import time
 
-bot = telebot.TeleBot('8212647592:AAGjpHDjphZSLVZRVwhe1duYvgQ13mUdjtI')
+TOKEN = '8212647592:AAGjpHDjphZSLVZRVwhe1duYvgQ13mUdjtI'
+bot = telebot.TeleBot(TOKEN)
+app = Flask(__name__)
 
-# Храним состояния пользователей
 user_states = {}
 
 @bot.message_handler(func=lambda msg: True, content_types=['text'])
 def handle_text(message):
     user_id = message.from_user.id
 
-    # Если пользователь уже прошел этап — игнорируем
     if user_states.get(user_id) in ['waiting_for_media', 'done', 'finished']:
         return
 
-    # Первый этап: отправляем задание
     user_states[user_id] = 'waiting_for_media'
 
     time.sleep(4)
@@ -38,7 +38,6 @@ def handle_text(message):
 def handle_media(message):
     user_id = message.from_user.id
 
-    # Проверяем, что ожидается медиа
     if user_states.get(user_id) == 'waiting_for_media':
         user_states[user_id] = 'done'
 
@@ -52,7 +51,6 @@ def handle_media(message):
             'У тебя есть еще 5 минут если ты не сделал 10 коментов.'
         )
 
-        # Запускаем отложенную отправку через 15 минут
         threading.Thread(target=delayed_gift_message, args=(message.chat.id, user_id)).start()
 
 def delayed_gift_message(chat_id, user_id):
@@ -60,9 +58,16 @@ def delayed_gift_message(chat_id, user_id):
     bot.send_message(chat_id, 'Подарок от меня в этом боте.')
     user_states[user_id] = 'finished'
 
-# Игнорируем любые другие типы сообщений после завершения
-@bot.message_handler(func=lambda msg: user_states.get(msg.from_user.id) == 'finished', content_types=['text', 'photo', 'video', 'audio', 'document', 'voice'])
-def ignore_after_gift(message):
-    pass  # Просто ничего не делаем
+@app.route(f'/{TOKEN}', methods=['POST'])
+def webhook():
+    json_str = request.get_data().decode('utf-8')
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return 'ok', 200
 
-bot.polling(none_stop=True)
+@app.route('/')
+def index():
+    return "Бот работает!", 200
+
+if __name__ == '__main__':
+    app.run()
