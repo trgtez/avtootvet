@@ -2,6 +2,7 @@ import telebot
 from flask import Flask, request
 import threading
 import time
+import os  # Добавлен импорт для чтения переменной окружения
 
 TOKEN = '8212647592:AAGjpHDjphZSLVZRVwhe1duYvgQ13mUdjtI'
 bot = telebot.TeleBot(TOKEN)
@@ -70,4 +71,5 @@ def index():
     return "Бот работает!", 200
 
 if __name__ == '__main__':
-    app.run()
+    # Запускаем Flask с нужным хостом и портом из окружения
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
